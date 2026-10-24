@@ -1,3 +1,4 @@
+
 package com.pcare.service;
 
 import com.pcare.dao.UserDao;
@@ -24,8 +25,25 @@ public class AuthenticationService {
             if (user.getUsername().equals(username)
                     && user.getPassword().equals(password)) {
 
-                if (!user.getStatus().equals("Active")) {
+                String status = user.getStatus();
+
+                if ("PENDING".equalsIgnoreCase(status)) {
+                    System.out.println(
+                            "Your account is waiting for administrator approval."
+                    );
+                    return null;
+                }
+
+                if ("INACTIVE".equalsIgnoreCase(status)) {
                     System.out.println("Your account is inactive.");
+                    return null;
+                }
+
+                if (!"ACTIVE".equalsIgnoreCase(status)
+                        && !"APPROVED".equalsIgnoreCase(status)) {
+                    System.out.println(
+                            "Your account is not approved or active."
+                    );
                     return null;
                 }
 

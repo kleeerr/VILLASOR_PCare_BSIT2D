@@ -11,6 +11,7 @@ import com.pcare.model.MaintenanceRequest;
 import com.pcare.model.User;
 import com.pcare.service.AuthenticationService;
 import com.pcare.ui.Authentication;
+import com.pcare.ui.AdminMenu;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -119,7 +120,10 @@ public class Main {
 
     // ==================== ADMINISTRATOR DASHBOARD ====================
 
+
     private static void administratorDashboard() {
+
+        AdminMenu adminMenu = new AdminMenu(userDao, scanner);
 
         while (loggedInUser != null) {
 
@@ -129,7 +133,8 @@ public class Main {
             System.out.println("3. Manage Maintenance Requests");
             System.out.println("4. Generate Summary Reports");
             System.out.println("5. View Activity Logs");
-            System.out.println("6. Logout");
+            System.out.println("6. User Registration Approval");
+            System.out.println("7. Logout");
 
             int choice = readInt("Choose an option: ");
 
@@ -140,6 +145,14 @@ public class Main {
                 case 4 -> generateReports();
                 case 5 -> viewActivityLogs();
                 case 6 -> {
+                    adminMenu.showMenu();
+
+                    activityLogDao.addLog(
+                            loggedInUser.getUserId(),
+                            "Accessed user registration approval menu"
+                    );
+                }
+                case 7 -> {
                     System.out.println("Logging out...");
                     return;
                 }
@@ -147,6 +160,7 @@ public class Main {
             }
         }
     }
+
 
     // ==================== USER MANAGEMENT ====================
 

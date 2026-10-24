@@ -15,7 +15,6 @@ public class UserDao {
 
     // CREATE: Add a new user (used by Administrator)
     public boolean addUser(User user) {
-
         String sql = """
                 INSERT INTO Users (username, password, full_name, role, status)
                 VALUES (?, ?, ?, ?, ?)
@@ -38,9 +37,8 @@ public class UserDao {
         }
     }
 
-    // REGISTER: Add a new account with PENDING status
+    // REGISTER: New accounts require administrator approval
     public boolean registerUser(User user) {
-
         String sql = """
                 INSERT INTO Users (username, password, full_name, role, status)
                 VALUES (?, ?, ?, ?, 'PENDING')
@@ -62,9 +60,8 @@ public class UserDao {
         }
     }
 
-    // READ: Get all users
+    // READ: Get all users, regardless of role or status
     public List<User> getAllUsers() {
-
         List<User> users = new ArrayList<>();
 
         String sql = "SELECT * FROM Users ORDER BY user_id";
@@ -74,17 +71,7 @@ public class UserDao {
              ResultSet result = statement.executeQuery()) {
 
             while (result.next()) {
-
-                User user = new User(
-                        result.getInt("user_id"),
-                        result.getString("username"),
-                        result.getString("password"),
-                        result.getString("full_name"),
-                        result.getString("role"),
-                        result.getString("status")
-                );
-
-                users.add(user);
+                users.add(mapUser(result));
             }
 
         } catch (SQLException e) {
@@ -94,9 +81,55 @@ public class UserDao {
         return users;
     }
 
+    // READ: Get all users whose status is PENDING
+    public List<User> getPendingUsers() {
+        List<User> users = new ArrayList<>();
+
+        String sql = """
+                SELECT * FROM Users
+                WHERE UPPER(status) = 'PENDING'
+                ORDER BY user_id
+                """;
+
+        try (Connection connection = DatabaseConnection.connect();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet result = statement.executeQuery()) {
+
+            while (result.next()) {
+                users.add(mapUser(result));
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error retrieving pending users: " + e.getMessage());
+        }
+
+        return users;
+    }
+
+    // APPROVE: Change a pending user's status to APPROVED
+    public boolean approveUser(int userId) {
+        String sql = """
+                UPDATE Users
+                SET status = 'APPROVED'
+                WHERE user_id = ?
+                AND UPPER(status) = 'PENDING'
+                """;
+
+        try (Connection connection = DatabaseConnection.connect();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setInt(1, userId);
+
+            return statement.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.out.println("Error approving user: " + e.getMessage());
+            return false;
+        }
+    }
+
     // READ: Find a user by ID
     public User getUserById(int userId) {
-
         String sql = "SELECT * FROM Users WHERE user_id = ?";
 
         try (Connection connection = DatabaseConnection.connect();
@@ -105,16 +138,8 @@ public class UserDao {
             statement.setInt(1, userId);
 
             try (ResultSet result = statement.executeQuery()) {
-
                 if (result.next()) {
-                    return new User(
-                            result.getInt("user_id"),
-                            result.getString("username"),
-                            result.getString("password"),
-                            result.getString("full_name"),
-                            result.getString("role"),
-                            result.getString("status")
-                    );
+                    return mapUser(result);
                 }
             }
 
@@ -127,7 +152,6 @@ public class UserDao {
 
     // UPDATE: Edit user information
     public boolean updateUser(User user) {
-
         String sql = """
                 UPDATE Users
                 SET username = ?, password = ?, full_name = ?, role = ?, status = ?
@@ -154,7 +178,6 @@ public class UserDao {
 
     // DELETE: Remove a user by ID
     public boolean deleteUser(int userId) {
-
         String sql = "DELETE FROM Users WHERE user_id = ?";
 
         try (Connection connection = DatabaseConnection.connect();
@@ -172,7 +195,6 @@ public class UserDao {
 
     // UPDATE: Activate or deactivate a user
     public boolean updateUserStatus(int userId, String status) {
-
         if (!status.equals("Active") && !status.equals("Inactive")) {
             System.out.println("Invalid status. Use Active or Inactive.");
             return false;
@@ -192,5 +214,17 @@ public class UserDao {
             System.out.println("Error updating user status: " + e.getMessage());
             return false;
         }
+    }
+
+    // HELPER: Convert a database row into a User object
+    private User mapUser(ResultSet result) throws SQLException {
+        return new User(
+                result.getInt("user_id"),
+                result.getString("username"),
+                result.getString("password"),
+                result.getString("full_name"),
+                result.getString("role"),
+                result.getString("status")
+        );
     }
 }
