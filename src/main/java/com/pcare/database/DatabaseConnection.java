@@ -1,3 +1,4 @@
+
 package com.pcare.database;
 
 import java.sql.Connection;
@@ -10,10 +11,19 @@ public class DatabaseConnection {
     private static final String URL = "jdbc:sqlite:pcare.db";
 
     public static Connection connect() throws SQLException {
-        return DriverManager.getConnection(URL);
+        Connection connection = DriverManager.getConnection(URL);
+
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("PRAGMA foreign_keys = ON");
+        } catch (SQLException e) {
+            connection.close();
+            throw e;
+        }
+
+        return connection;
     }
 
-    public static void createTables() {
+    public static void initializeDatabase() {
 
         String usersTable = """
                 CREATE TABLE IF NOT EXISTS Users (
@@ -71,17 +81,22 @@ public class DatabaseConnection {
         try (Connection connection = connect();
              Statement statement = connection.createStatement()) {
 
-            statement.execute("PRAGMA foreign_keys = ON");
-
             statement.execute(usersTable);
             statement.execute(computersTable);
             statement.execute(maintenanceTable);
             statement.execute(activityLogsTable);
 
-            System.out.println("PCare database tables created successfully!");
+            System.out.println(
+                    "PCare database initialized successfully!"
+            );
 
         } catch (SQLException e) {
-            System.out.println("Database error: " + e.getMessage());
+            System.out.println(
+                    "Database initialization error: " + e.getMessage()
+            );
+            throw new IllegalStateException(
+                    "Could not initialize the PCare database.", e
+            );
         }
     }
 }

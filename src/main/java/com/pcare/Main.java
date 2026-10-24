@@ -1,15 +1,16 @@
 package com.pcare;
 
+import com.pcare.dao.DatabaseInitializer;
 import com.pcare.dao.ActivityLogDao;
 import com.pcare.dao.ComputerDao;
 import com.pcare.dao.MaintenanceRequestDao;
 import com.pcare.dao.UserDao;
-import com.pcare.database.DatabaseConnection;
 import com.pcare.model.ActivityLog;
 import com.pcare.model.Computer;
 import com.pcare.model.MaintenanceRequest;
 import com.pcare.model.User;
 import com.pcare.service.AuthenticationService;
+import com.pcare.ui.Authentication;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,7 +18,12 @@ import java.util.Scanner;
 
 public class Main {
 
+    // ==================== INITIALIZATION ====================
+
     private static final Scanner scanner = new Scanner(System.in);
+
+    private static final DatabaseInitializer databaseInitializer =
+            new DatabaseInitializer();
 
     private static final AuthenticationService authService =
             new AuthenticationService();
@@ -29,30 +35,47 @@ public class Main {
     private static final ActivityLogDao activityLogDao =
             new ActivityLogDao();
 
+    private static final Authentication authentication =
+            new Authentication(userDao, authService, scanner);
+
     private static User loggedInUser;
+
+    // ==================== MAIN ====================
 
     public static void main(String[] args) {
 
-        DatabaseConnection.createTables();
+        try {
+            databaseInitializer.initialize();
 
-        while (true) {
-            System.out.println("\n=================================================");
-            System.out.println(" PCare Computer Laboratory Maintenance Tracker");
-            System.out.println("=================================================");
-            System.out.println("1. Login");
-            System.out.println("2. Exit");
+            while (true) {
+                System.out.println("\n=================================================");
+                System.out.println(" PCare Computer Laboratory Maintenance Tracker");
+                System.out.println("=================================================");
+                System.out.println("1. Login");
+                System.out.println("2. Register");
+                System.out.println("3. Exit");
 
-            int choice = readInt("Choose an option: ");
+                int choice = readInt("Choose an option: ");
 
-            switch (choice) {
-                case 1 -> login();
-                case 2 -> {
-                    System.out.println("Thank you for using PCare!");
-                    scanner.close();
-                    return;
+                switch (choice) {
+                    case 1 -> login();
+                    case 2 -> authentication.register();
+                    case 3 -> {
+                        System.out.println("Thank you for using PCare!");
+                        return;
+                    }
+                    default -> System.out.println(
+                            "Invalid choice. Please try again."
+                    );
                 }
-                default -> System.out.println("Invalid choice. Try again.");
             }
+
+        } catch (Exception e) {
+            System.out.println("Unable to start PCare.");
+            System.out.println("Error: " + e.getMessage());
+
+        } finally {
+            scanner.close();
         }
     }
 
@@ -60,15 +83,7 @@ public class Main {
 
     private static void login() {
 
-        System.out.println("\n========== LOGIN ==========");
-
-        System.out.print("Username: ");
-        String username = scanner.nextLine().trim();
-
-        System.out.print("Password: ");
-        String password = scanner.nextLine();
-
-        User user = authService.login(username, password);
+        User user = authentication.login();
 
         if (user == null) {
             return;
@@ -81,16 +96,15 @@ public class Main {
                 "Logged in"
         );
 
-        System.out.println("\nWelcome, " + loggedInUser.getFullName() + "!");
-        System.out.println("Role: " + loggedInUser.getRole());
-
         try {
             switch (loggedInUser.getRole()) {
                 case "Administrator" -> administratorDashboard();
                 case "Technician" -> technicianDashboard();
-                case "Laboratory Assistant" -> laboratoryAssistantDashboard();
+                case "Laboratory Assistant" ->
+                        laboratoryAssistantDashboard();
                 default -> System.out.println("Invalid user role.");
             }
+
         } finally {
             if (loggedInUser != null) {
                 activityLogDao.addLog(
@@ -198,17 +212,13 @@ public class Main {
             }
         }
 
-        if (username.isBlank() || password.isBlank() || fullName.isBlank()) {
+        if (username.isBlank() || password.isBlank()
+                || fullName.isBlank()) {
             System.out.println("All fields are required.");
             return;
         }
 
-        User user = new User(
-                username,
-                password,
-                fullName,
-                role
-        );
+        User user = new User(username, password, fullName, role);
 
         if (userDao.addUser(user)) {
             activityLogDao.addLog(
@@ -305,7 +315,7 @@ public class Main {
             return;
         }
 
-        System.out.println("\nLeave a field blank to keep its current value.");
+        System.out.println("Leave a field blank to keep its current value.");
 
         System.out.print("New Username (" + user.getUsername() + "): ");
         String username = scanner.nextLine().trim();
@@ -313,7 +323,7 @@ public class Main {
         System.out.print("New Full Name (" + user.getFullName() + "): ");
         String fullName = scanner.nextLine().trim();
 
-        System.out.print("New Password (hidden): ");
+        System.out.print("New Password: ");
         String password = scanner.nextLine();
 
         System.out.println("\nCurrent Role: " + user.getRole());
@@ -338,6 +348,7 @@ public class Main {
 
         switch (roleChoice) {
             case 1 -> {
+                // Keep current role.
             }
             case 2 -> user.setRole("Administrator");
             case 3 -> user.setRole("Technician");
@@ -856,8 +867,8 @@ public class Main {
         User technician = userDao.getUserById(technicianId);
 
         if (technician == null
-                || !technician.getRole().equals("Technician")
-                || !technician.getStatus().equals("Active")) {
+                || !"Technician".equals(technician.getRole())
+                || !"Active".equals(technician.getStatus())) {
             System.out.println(
                     "The selected user is not an active technician."
             );
@@ -1244,8 +1255,7 @@ public class Main {
         if (requestDao.updateStatus(id, status)) {
             activityLogDao.addLog(
                     loggedInUser.getUserId(),
-                    "Updated assigned request " + id
-                            + " to " + status
+                    "Updated assigned request " + id + " to " + status
             );
 
             System.out.println("Request status updated!");
@@ -1294,7 +1304,9 @@ public class Main {
 
         while (loggedInUser != null) {
 
-            System.out.println("\n========== LABORATORY ASSISTANT DASHBOARD ==========");
+            System.out.println(
+                    "\n========== LABORATORY ASSISTANT DASHBOARD =========="
+            );
             System.out.println("1. View Computers");
             System.out.println("2. Search Computers");
             System.out.println("3. Report Computer Problem");
@@ -1457,7 +1469,9 @@ public class Main {
             case 2 -> "Needs Maintenance";
             case 3 -> "Under Repair";
             default -> {
-                System.out.println("Invalid condition. Defaulting to Good.");
+                System.out.println(
+                        "Invalid condition. Defaulting to Good."
+                );
                 yield "Good";
             }
         };

@@ -1,3 +1,4 @@
+
 package com.pcare.dao;
 
 import com.pcare.database.DatabaseConnection;
@@ -12,7 +13,7 @@ import java.util.List;
 
 public class UserDao {
 
-    // CREATE: Add a new user
+    // CREATE: Add a new user (used by Administrator)
     public boolean addUser(User user) {
 
         String sql = """
@@ -33,6 +34,30 @@ public class UserDao {
 
         } catch (SQLException e) {
             System.out.println("Error adding user: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // REGISTER: Add a new account with PENDING status
+    public boolean registerUser(User user) {
+
+        String sql = """
+                INSERT INTO Users (username, password, full_name, role, status)
+                VALUES (?, ?, ?, ?, 'PENDING')
+                """;
+
+        try (Connection connection = DatabaseConnection.connect();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, user.getUsername());
+            statement.setString(2, user.getPassword());
+            statement.setString(3, user.getFullName());
+            statement.setString(4, user.getRole());
+
+            return statement.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.out.println("Error registering user: " + e.getMessage());
             return false;
         }
     }
