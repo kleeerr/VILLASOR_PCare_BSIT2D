@@ -123,7 +123,7 @@ public class Main {
 
     private static void administratorDashboard() {
 
-        AdminMenu adminMenu = new AdminMenu(userDao, scanner);
+        AdminMenu adminMenu = new AdminMenu(userDao, scanner, loggedInUser);
 
         while (loggedInUser != null) {
 

@@ -1,4 +1,3 @@
-
 package com.pcare.dao;
 
 import com.pcare.database.DatabaseConnection;
@@ -13,7 +12,7 @@ import java.util.List;
 
 public class UserDao {
 
-    // CREATE: Add a new user (used by Administrator)
+    // CREATE: Add a new user
     public boolean addUser(User user) {
         String sql = """
                 INSERT INTO Users (username, password, full_name, role, status)
@@ -60,10 +59,9 @@ public class UserDao {
         }
     }
 
-    // READ: Get all users, regardless of role or status
+    // READ: Get all users
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
-
         String sql = "SELECT * FROM Users ORDER BY user_id";
 
         try (Connection connection = DatabaseConnection.connect();
@@ -81,7 +79,7 @@ public class UserDao {
         return users;
     }
 
-    // READ: Get all users whose status is PENDING
+    // READ: Get pending registrations
     public List<User> getPendingUsers() {
         List<User> users = new ArrayList<>();
 
@@ -119,7 +117,6 @@ public class UserDao {
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setInt(1, userId);
-
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
@@ -150,7 +147,7 @@ public class UserDao {
         return null;
     }
 
-    // UPDATE: Edit user information
+    // UPDATE: Edit all user information
     public boolean updateUser(User user) {
         String sql = """
                 UPDATE Users
@@ -184,7 +181,6 @@ public class UserDao {
              PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setInt(1, userId);
-
             return statement.executeUpdate() > 0;
 
         } catch (SQLException e) {
@@ -212,6 +208,40 @@ public class UserDao {
 
         } catch (SQLException e) {
             System.out.println("Error updating user status: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // NEW: Update a user's role and status
+    public boolean updateUserRoleAndStatus(
+            int userId,
+            String newRole,
+            String newStatus) {
+
+        if (newRole == null || newStatus == null) {
+            System.out.println("Role and status are required.");
+            return false;
+        }
+
+        String sql = """
+                UPDATE Users
+                SET role = ?, status = ?
+                WHERE user_id = ?
+                """;
+
+        try (Connection connection = DatabaseConnection.connect();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, newRole.toUpperCase());
+            statement.setString(2, newStatus.toUpperCase());
+            statement.setInt(3, userId);
+
+            return statement.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.out.println(
+                    "Error updating user role and status: " + e.getMessage()
+            );
             return false;
         }
     }
