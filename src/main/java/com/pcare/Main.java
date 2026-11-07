@@ -19,8 +19,6 @@ import java.util.Scanner;
 
 public class Main {
 
-    // ==================== INITIALIZATION ====================
-
     private static final Scanner scanner = new Scanner(System.in);
 
     private static final DatabaseInitializer databaseInitializer =
@@ -65,9 +63,7 @@ public class Main {
                         System.out.println("Thank you for using PCare!");
                         return;
                     }
-                    default -> System.out.println(
-                            "Invalid choice. Please try again."
-                    );
+                    default -> System.out.println("Invalid choice. Please try again.");
                 }
             }
 
@@ -92,18 +88,19 @@ public class Main {
 
         loggedInUser = user;
 
-        activityLogDao.addLog(
-                loggedInUser.getUserId(),
-                "Logged in"
-        );
+        activityLogDao.addLog(loggedInUser.getUserId(), "Logged in");
 
         try {
-            switch (loggedInUser.getRole()) {
-                case "Administrator" -> administratorDashboard();
-                case "Technician" -> technicianDashboard();
-                case "Laboratory Assistant" ->
-                        laboratoryAssistantDashboard();
-                default -> System.out.println("Invalid user role.");
+            String role = loggedInUser.getRole();
+
+            if (role.equalsIgnoreCase("Administrator")) {
+                administratorDashboard();
+            } else if (role.equalsIgnoreCase("Technician")) {
+                technicianDashboard();
+            } else if (role.equalsIgnoreCase("Laboratory Assistant")) {
+                laboratoryAssistantDashboard();
+            } else {
+                System.out.println("Invalid user role.");
             }
 
         } finally {
@@ -120,10 +117,10 @@ public class Main {
 
     // ==================== ADMINISTRATOR DASHBOARD ====================
 
-
     private static void administratorDashboard() {
 
-        AdminMenu adminMenu = new AdminMenu(userDao, scanner, loggedInUser);
+        AdminMenu adminMenu =
+                new AdminMenu(userDao, scanner, loggedInUser);
 
         while (loggedInUser != null) {
 
@@ -144,14 +141,7 @@ public class Main {
                 case 3 -> manageMaintenanceRequests();
                 case 4 -> generateReports();
                 case 5 -> viewActivityLogs();
-                case 6 -> {
-                    adminMenu.showMenu();
-
-                    activityLogDao.addLog(
-                            loggedInUser.getUserId(),
-                            "Accessed user registration approval menu"
-                    );
-                }
+                case 6 -> adminMenu.showMenu();
                 case 7 -> {
                     System.out.println("Logging out...");
                     return;
@@ -161,13 +151,11 @@ public class Main {
         }
     }
 
-
     // ==================== USER MANAGEMENT ====================
 
     private static void manageUsers() {
 
         while (true) {
-
             System.out.println("\n========== MANAGE USERS ==========");
             System.out.println("1. Add User");
             System.out.println("2. View All Users");
@@ -226,8 +214,7 @@ public class Main {
             }
         }
 
-        if (username.isBlank() || password.isBlank()
-                || fullName.isBlank()) {
+        if (username.isBlank() || password.isBlank() || fullName.isBlank()) {
             System.out.println("All fields are required.");
             return;
         }
@@ -239,12 +226,9 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Added user: " + username
             );
-
             System.out.println("User added successfully!");
         } else {
-            System.out.println(
-                    "Failed to add user. The username may already exist."
-            );
+            System.out.println("Failed to add user. The username may already exist.");
         }
     }
 
@@ -264,9 +248,7 @@ public class Main {
                 "ID", "Username", "Full Name", "Role", "Status"
         );
 
-        System.out.println(
-                "--------------------------------------------------------------------------------------"
-        );
+        System.out.println("--------------------------------------------------------------------------------------");
 
         for (User user : users) {
             System.out.printf(
@@ -284,9 +266,7 @@ public class Main {
 
         int id = readPositiveId("Enter User ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         User user = userDao.getUserById(id);
 
@@ -311,9 +291,7 @@ public class Main {
 
         int id = readPositiveId("Enter User ID to update: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         User user = userDao.getUserById(id);
 
@@ -323,9 +301,7 @@ public class Main {
         }
 
         if (loggedInUser.getUserId() == id) {
-            System.out.println(
-                    "You cannot update your own account through this menu."
-            );
+            System.out.println("You cannot update your own account through this menu.");
             return;
         }
 
@@ -348,22 +324,12 @@ public class Main {
 
         int roleChoice = readInt("Choose an option: ");
 
-        if (!username.isBlank()) {
-            user.setUsername(username);
-        }
-
-        if (!fullName.isBlank()) {
-            user.setFullName(fullName);
-        }
-
-        if (!password.isBlank()) {
-            user.setPassword(password);
-        }
+        if (!username.isBlank()) user.setUsername(username);
+        if (!fullName.isBlank()) user.setFullName(fullName);
+        if (!password.isBlank()) user.setPassword(password);
 
         switch (roleChoice) {
-            case 1 -> {
-                // Keep current role.
-            }
+            case 1 -> { }
             case 2 -> user.setRole("Administrator");
             case 3 -> user.setRole("Technician");
             case 4 -> user.setRole("Laboratory Assistant");
@@ -378,12 +344,9 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Updated user ID: " + id
             );
-
             System.out.println("User updated successfully!");
         } else {
-            System.out.println(
-                    "Failed to update user. Check whether the username already exists."
-            );
+            System.out.println("Failed to update user. Check whether the username already exists.");
         }
     }
 
@@ -391,9 +354,7 @@ public class Main {
 
         int id = readPositiveId("Enter User ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         User user = userDao.getUserById(id);
 
@@ -429,7 +390,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     status + " user ID: " + id
             );
-
             System.out.println("User status updated successfully!");
         } else {
             System.out.println("Failed to update user status.");
@@ -440,9 +400,7 @@ public class Main {
 
         int id = readPositiveId("Enter User ID to delete: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         if (loggedInUser.getUserId() == id) {
             System.out.println("You cannot delete your own account.");
@@ -457,9 +415,7 @@ public class Main {
         }
 
         System.out.println("User: " + user.getFullName());
-        System.out.println(
-                "Warning: deletion may fail if this user has related records."
-        );
+        System.out.println("Warning: deletion may fail if this user has related records.");
 
         if (!confirm("Are you sure you want to delete this user?")) {
             System.out.println("Deletion cancelled.");
@@ -471,12 +427,9 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Deleted user ID: " + id
             );
-
             System.out.println("User deleted successfully!");
         } else {
-            System.out.println(
-                    "Could not delete the user. They may be referenced by maintenance requests or activity logs."
-            );
+            System.out.println("Could not delete the user. They may be referenced by maintenance requests or activity logs.");
         }
     }
 
@@ -485,7 +438,6 @@ public class Main {
     private static void manageComputers() {
 
         while (true) {
-
             System.out.println("\n========== MANAGE COMPUTERS ==========");
             System.out.println("1. Add Computer");
             System.out.println("2. View All Computers");
@@ -538,10 +490,7 @@ public class Main {
         }
 
         Computer computer = new Computer(
-                name,
-                location,
-                specifications,
-                condition,
+                name, location, specifications, condition,
                 LocalDate.now().toString()
         );
 
@@ -550,7 +499,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Added computer: " + name
             );
-
             System.out.println("Computer added successfully!");
         } else {
             System.out.println("Failed to add computer.");
@@ -579,9 +527,7 @@ public class Main {
                 "Condition", "Date"
         );
 
-        System.out.println(
-                "-------------------------------------------------------------------------------------------------------------------"
-        );
+        System.out.println("-------------------------------------------------------------------------------------------------------------------");
 
         for (Computer computer : computers) {
             System.out.printf(
@@ -590,9 +536,7 @@ public class Main {
                     shorten(computer.getComputerName(), 21),
                     shorten(computer.getLocation(), 19),
                     shorten(
-                            computer.getSpecifications() == null
-                                    ? ""
-                                    : computer.getSpecifications(),
+                            computer.getSpecifications() == null ? "" : computer.getSpecifications(),
                             23
                     ),
                     computer.getCondition(),
@@ -624,9 +568,7 @@ public class Main {
 
         int id = readPositiveId("Enter Computer ID to update: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         Computer computer = computerDao.getComputerById(id);
 
@@ -643,29 +585,18 @@ public class Main {
         System.out.print("Location (" + computer.getLocation() + "): ");
         String location = scanner.nextLine().trim();
 
-        System.out.print(
-                "Specifications (" + computer.getSpecifications() + "): "
-        );
+        System.out.print("Specifications (" + computer.getSpecifications() + "): ");
         String specifications = scanner.nextLine().trim();
 
-        if (!name.isBlank()) {
-            computer.setComputerName(name);
-        }
-
-        if (!location.isBlank()) {
-            computer.setLocation(location);
-        }
-
-        if (!specifications.isBlank()) {
-            computer.setSpecifications(specifications);
-        }
+        if (!name.isBlank()) computer.setComputerName(name);
+        if (!location.isBlank()) computer.setLocation(location);
+        if (!specifications.isBlank()) computer.setSpecifications(specifications);
 
         if (computerDao.updateComputer(computer)) {
             activityLogDao.addLog(
                     loggedInUser.getUserId(),
                     "Updated computer ID: " + id
             );
-
             System.out.println("Computer updated successfully!");
         } else {
             System.out.println("Failed to update computer.");
@@ -676,9 +607,7 @@ public class Main {
 
         int id = readPositiveId("Enter Computer ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         Computer computer = computerDao.getComputerById(id);
 
@@ -699,7 +628,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Updated condition of computer ID: " + id
             );
-
             System.out.println("Computer condition updated!");
         } else {
             System.out.println("Failed to update computer condition.");
@@ -710,9 +638,7 @@ public class Main {
 
         int id = readPositiveId("Enter Computer ID to delete: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         Computer computer = computerDao.getComputerById(id);
 
@@ -731,12 +657,9 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Deleted computer ID: " + id
             );
-
             System.out.println("Computer deleted successfully!");
         } else {
-            System.out.println(
-                    "Could not delete this computer. It may have related maintenance requests."
-            );
+            System.out.println("Could not delete this computer. It may have related maintenance requests.");
         }
     }
 
@@ -745,7 +668,6 @@ public class Main {
     private static void manageMaintenanceRequests() {
 
         while (true) {
-
             System.out.println("\n========== MAINTENANCE REQUESTS ==========");
             System.out.println("1. View All Requests");
             System.out.println("2. View Request by ID");
@@ -796,9 +718,7 @@ public class Main {
                 "Status", "Reported", "Problem"
         );
 
-        System.out.println(
-                "-----------------------------------------------------------------------------------------------"
-        );
+        System.out.println("-----------------------------------------------------------------------------------------------");
 
         for (MaintenanceRequest request : requests) {
             String assigned = request.getAssignedTo() == null
@@ -822,9 +742,7 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(id);
 
@@ -861,9 +779,7 @@ public class Main {
 
         int requestId = readPositiveId("Enter Request ID: ");
 
-        if (requestId == -1) {
-            return;
-        }
+        if (requestId == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(requestId);
 
@@ -874,28 +790,22 @@ public class Main {
 
         int technicianId = readPositiveId("Enter Technician User ID: ");
 
-        if (technicianId == -1) {
-            return;
-        }
+        if (technicianId == -1) return;
 
         User technician = userDao.getUserById(technicianId);
 
         if (technician == null
-                || !"Technician".equals(technician.getRole())
-                || !"Active".equals(technician.getStatus())) {
-            System.out.println(
-                    "The selected user is not an active technician."
-            );
+                || !technician.getRole().equalsIgnoreCase("Technician")
+                || !technician.getStatus().equalsIgnoreCase("Active")) {
+            System.out.println("The selected user is not an active technician.");
             return;
         }
 
         if (requestDao.assignTechnician(requestId, technicianId)) {
             activityLogDao.addLog(
                     loggedInUser.getUserId(),
-                    "Assigned technician " + technicianId
-                            + " to request " + requestId
+                    "Assigned technician " + technicianId + " to request " + requestId
             );
-
             System.out.println("Technician assigned successfully!");
         } else {
             System.out.println("Failed to assign technician.");
@@ -906,9 +816,7 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(id);
 
@@ -941,7 +849,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Changed request " + id + " status to " + status
             );
-
             System.out.println("Request status updated!");
         } else {
             System.out.println("Failed to update request status.");
@@ -952,9 +859,7 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(id);
 
@@ -976,7 +881,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Updated repair notes for request " + id
             );
-
             System.out.println("Repair notes saved!");
         } else {
             System.out.println("Failed to save repair notes.");
@@ -987,9 +891,7 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(id);
 
@@ -1011,7 +913,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Updated problem description for request " + id
             );
-
             System.out.println("Problem description updated!");
         } else {
             System.out.println("Failed to update description.");
@@ -1022,9 +923,7 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID to delete: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(id);
 
@@ -1043,7 +942,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Deleted maintenance request " + id
             );
-
             System.out.println("Request deleted successfully!");
         } else {
             System.out.println("Failed to delete request.");
@@ -1087,10 +985,12 @@ public class Main {
         int assistants = 0;
 
         for (User user : users) {
-            switch (user.getRole()) {
-                case "Administrator" -> administrators++;
-                case "Technician" -> technicians++;
-                case "Laboratory Assistant" -> assistants++;
+            if (user.getRole().equalsIgnoreCase("Administrator")) {
+                administrators++;
+            } else if (user.getRole().equalsIgnoreCase("Technician")) {
+                technicians++;
+            } else if (user.getRole().equalsIgnoreCase("Laboratory Assistant")) {
+                assistants++;
             }
         }
 
@@ -1125,7 +1025,7 @@ public class Main {
 
     private static void viewActivityLogs() {
 
-        System.out.println("\n========== ACTIVITY LOGS ==========");
+        System.out.println("\n========== SYSTEM AUDIT LOGS ==========");
 
         List<ActivityLog> logs = activityLogDao.getAllLogs();
 
@@ -1135,23 +1035,24 @@ public class Main {
         }
 
         System.out.printf(
-                "%-8s %-10s %-35s %-22s%n",
-                "Log ID", "User ID", "Action", "Date and Time"
+                "%-5s | %-8s | %-18s | %-35s | %-20s%n",
+                "ID", "USER ID", "ACTION TYPE", "DESCRIPTION", "TIMESTAMP"
         );
 
-        System.out.println(
-                "--------------------------------------------------------------------------"
-        );
+        System.out.println("---------------------------------------------------------------------------------------------------------------");
 
         for (ActivityLog log : logs) {
             System.out.printf(
-                    "%-8d %-10d %-35s %-22s%n",
+                    "%-5d | %-8d | %-18s | %-35s | %-20s%n",
                     log.getLogId(),
                     log.getUserId(),
-                    shorten(log.getAction(), 34),
-                    log.getDateTime()
+                    log.getActionType(),
+                    log.getDescription(),
+                    log.getTimestamp()
             );
         }
+
+        System.out.println("---------------------------------------------------------------------------------------------------------------");
     }
 
     // ==================== TECHNICIAN DASHBOARD ====================
@@ -1159,7 +1060,6 @@ public class Main {
     private static void technicianDashboard() {
 
         while (loggedInUser != null) {
-
             System.out.println("\n========== TECHNICIAN DASHBOARD ==========");
             System.out.println("1. View Assigned Requests");
             System.out.println("2. View Request Details");
@@ -1185,9 +1085,7 @@ public class Main {
     private static void viewAssignedRequests() {
 
         List<MaintenanceRequest> requests =
-                requestDao.getRequestsByTechnician(
-                        loggedInUser.getUserId()
-                );
+                requestDao.getRequestsByTechnician(loggedInUser.getUserId());
 
         System.out.println("\n========== MY ASSIGNED REQUESTS ==========");
 
@@ -1210,9 +1108,7 @@ public class Main {
 
         if (request.getAssignedTo() == null
                 || request.getAssignedTo() != loggedInUser.getUserId()) {
-            System.out.println(
-                    "You can only access requests assigned to you."
-            );
+            System.out.println("You can only access requests assigned to you.");
             return null;
         }
 
@@ -1223,9 +1119,7 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = getAssignedRequest(id);
 
@@ -1238,15 +1132,11 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = getAssignedRequest(id);
 
-        if (request == null) {
-            return;
-        }
+        if (request == null) return;
 
         System.out.println("1. Pending");
         System.out.println("2. In Progress");
@@ -1271,7 +1161,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Updated assigned request " + id + " to " + status
             );
-
             System.out.println("Request status updated!");
         } else {
             System.out.println("Failed to update request status.");
@@ -1282,15 +1171,11 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = getAssignedRequest(id);
 
-        if (request == null) {
-            return;
-        }
+        if (request == null) return;
 
         System.out.print("Enter repair notes: ");
         String notes = scanner.nextLine().trim();
@@ -1305,7 +1190,6 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Recorded repair notes for request " + id
             );
-
             System.out.println("Repair notes saved!");
         } else {
             System.out.println("Failed to save repair notes.");
@@ -1317,10 +1201,7 @@ public class Main {
     private static void laboratoryAssistantDashboard() {
 
         while (loggedInUser != null) {
-
-            System.out.println(
-                    "\n========== LABORATORY ASSISTANT DASHBOARD =========="
-            );
+            System.out.println("\n========== LABORATORY ASSISTANT DASHBOARD ==========");
             System.out.println("1. View Computers");
             System.out.println("2. Search Computers");
             System.out.println("3. Report Computer Problem");
@@ -1351,9 +1232,7 @@ public class Main {
         List<Computer> computers = computerDao.getAllComputers();
 
         if (computers.isEmpty()) {
-            System.out.println(
-                    "No computers are registered. Contact the administrator."
-            );
+            System.out.println("No computers are registered. Contact the administrator.");
             return;
         }
 
@@ -1361,9 +1240,7 @@ public class Main {
 
         int computerId = readPositiveId("Enter Computer ID: ");
 
-        if (computerId == -1) {
-            return;
-        }
+        if (computerId == -1) return;
 
         Computer computer = computerDao.getComputerById(computerId);
 
@@ -1392,11 +1269,8 @@ public class Main {
                     loggedInUser.getUserId(),
                     "Reported a problem for computer ID: " + computerId
             );
-
             System.out.println("Problem reported successfully!");
-            System.out.println(
-                    "The request is now pending administrator assignment."
-            );
+            System.out.println("The request is now pending administrator assignment.");
         } else {
             System.out.println("Failed to submit the maintenance request.");
         }
@@ -1405,9 +1279,7 @@ public class Main {
     private static void viewMyReportedRequests() {
 
         List<MaintenanceRequest> requests =
-                requestDao.getRequestsByReporter(
-                        loggedInUser.getUserId()
-                );
+                requestDao.getRequestsByReporter(loggedInUser.getUserId());
 
         System.out.println("\n========== MY REPORTED REQUESTS ==========");
 
@@ -1423,17 +1295,13 @@ public class Main {
 
         int id = readPositiveId("Enter Request ID: ");
 
-        if (id == -1) {
-            return;
-        }
+        if (id == -1) return;
 
         MaintenanceRequest request = requestDao.getRequestById(id);
 
         if (request == null
                 || request.getReportedBy() != loggedInUser.getUserId()) {
-            System.out.println(
-                    "Request not found among your reported requests."
-            );
+            System.out.println("Request not found among your reported requests.");
             return;
         }
 
@@ -1483,9 +1351,7 @@ public class Main {
             case 2 -> "Needs Maintenance";
             case 3 -> "Under Repair";
             default -> {
-                System.out.println(
-                        "Invalid condition. Defaulting to Good."
-                );
+                System.out.println("Invalid condition. Defaulting to Good.");
                 yield "Good";
             }
         };
@@ -1493,13 +1359,9 @@ public class Main {
 
     private static String shorten(String text, int maxLength) {
 
-        if (text == null) {
-            return "";
-        }
+        if (text == null) return "";
 
-        if (text.length() <= maxLength) {
-            return text;
-        }
+        if (text.length() <= maxLength) return text;
 
         return text.substring(0, maxLength - 3) + "...";
     }

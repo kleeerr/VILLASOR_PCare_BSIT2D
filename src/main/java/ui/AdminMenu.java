@@ -1,7 +1,10 @@
+
 package com.pcare.ui;
 
 import com.pcare.dao.UserDao;
+import com.pcare.dao.ActivityLogDao;
 import com.pcare.model.User;
+import com.pcare.model.ActivityLog;
 
 import java.util.List;
 import java.util.Scanner;
@@ -9,6 +12,7 @@ import java.util.Scanner;
 public class AdminMenu {
 
     private final UserDao userDao;
+    private final ActivityLogDao activityLogDao;
     private final Scanner scanner;
     private final User currentAdmin;
 
@@ -16,14 +20,13 @@ public class AdminMenu {
         this(userDao, scanner, null);
     }
 
-    public AdminMenu(
-            UserDao userDao,
-            Scanner scanner,
-            User currentAdmin) {
+    public AdminMenu(UserDao userDao, Scanner scanner,
+                     User currentAdmin) {
 
         this.userDao = userDao;
         this.scanner = scanner;
         this.currentAdmin = currentAdmin;
+        this.activityLogDao = new ActivityLogDao();
     }
 
     public void showMenu() {
@@ -35,22 +38,22 @@ public class AdminMenu {
             System.out.println("2. View Pending Registrations");
             System.out.println("3. Approve User Account");
             System.out.println("4. Update User Role and Status");
+            System.out.println("5. View System Audit Logs");
             System.out.println("0. Back to Previous Menu");
             System.out.println("==================================");
 
-            int choice = readIntInput("Enter your choice (0 to cancel): ");
+            int choice = readIntInput("Enter your choice: ");
 
             switch (choice) {
                 case 1 -> viewAllUsers();
                 case 2 -> viewPendingUsers();
                 case 3 -> approveUser();
                 case 4 -> updateUserRoleAndStatus();
+                case 5 -> showAuditLogMenu();
                 case 0 -> {
                     return;
                 }
-                default -> System.out.println(
-                        "Invalid choice. Please choose 0 to 4."
-                );
+                default -> System.out.println("Invalid choice.");
             }
         }
     }
@@ -76,9 +79,7 @@ public class AdminMenu {
         displayUsers(pendingUsers);
 
         if (pendingUsers.isEmpty()) {
-            System.out.println(
-                    "There are no pending accounts to approve."
-            );
+            System.out.println("There are no pending accounts to approve.");
             return;
         }
 
@@ -108,11 +109,17 @@ public class AdminMenu {
                             + "' (ID: " + userId
                             + ") has been approved."
             );
+
             System.out.println("New status: APPROVED");
-        } else {
-            System.out.println(
-                    "Approval failed. Please try again."
+
+            recordAdminActivity(
+                    "USER_APPROVED",
+                    "Approved account for user ID " + userId
+                            + " (" + selectedUser.getUsername() + ")"
             );
+
+        } else {
+            System.out.println("Approval failed. Please try again.");
         }
     }
 
@@ -145,8 +152,7 @@ public class AdminMenu {
 
         if (currentAdmin != null
                 && targetUserId == currentAdmin.getUserId()
-                && "ACTIVE".equalsIgnoreCase(
-                currentAdmin.getStatus())) {
+                && "ACTIVE".equalsIgnoreCase(currentAdmin.getStatus())) {
 
             System.out.println(
                     "WARNING: Modifying the currently active admin account is restricted."
@@ -157,6 +163,9 @@ public class AdminMenu {
         System.out.println(
                 "Selected user: " + targetUser.getUsername()
         );
+
+        String oldRole = targetUser.getRole();
+        String oldStatus = targetUser.getStatus();
 
         String newRole = readValidRole();
 
@@ -183,9 +192,154 @@ public class AdminMenu {
             System.out.println("User ID: " + targetUserId);
             System.out.println("New Role: " + newRole);
             System.out.println("New Status: " + newStatus);
+
+            recordAdminActivity(
+                    "USER_UPDATED",
+                    "Updated user ID " + targetUserId
+                            + ": Role " + oldRole + " to " + newRole
+                            + ", Status " + oldStatus + " to " + newStatus
+            );
+
         } else {
             System.out.println(
                     "Update failed. Please check the database."
+            );
+        }
+    }
+
+    // AUDIT LOG MENU
+    private void showAuditLogMenu() {
+
+        while (true) {
+            System.out.println("\n==================================");
+            System.out.println("       SYSTEM AUDIT LOGS");
+            System.out.println("==================================");
+            System.out.println("1. View All Logs");
+            System.out.println("2. Filter Logs by User ID");
+            System.out.println("3. Clear Historical Logs");
+            System.out.println("0. Back");
+            System.out.println("==================================");
+
+            int choice = readIntInput("Enter your choice: ");
+
+            switch (choice) {
+                case 1 -> viewAllAuditLogs();
+
+                case 2 -> {
+                    int userId = readIntInput(
+                            "Enter User ID (0 to cancel): "
+                    );
+
+                    if (userId != 0) {
+                        viewAuditLogsByUser(userId);
+                    }
+                }
+
+                case 3 -> clearHistoricalLogs();
+
+                case 0 -> {
+                    return;
+                }
+
+                default -> System.out.println("Invalid choice.");
+            }
+        }
+    }
+
+    // VIEW ALL AUDIT LOGS
+    private void viewAllAuditLogs() {
+        List<ActivityLog> logs = activityLogDao.getAllLogs();
+
+        System.out.println("\n========== ALL SYSTEM AUDIT LOGS ==========");
+        displayAuditLogs(logs);
+    }
+
+    // FILTER LOGS BY USER ID
+    private void viewAuditLogsByUser(int userId) {
+        List<ActivityLog> logs =
+                activityLogDao.getLogsByUserId(userId);
+
+        System.out.println(
+                "\n========== AUDIT LOGS FOR USER ID "
+                        + userId + " =========="
+        );
+
+        displayAuditLogs(logs);
+    }
+
+    // CLEAR LOGS WITH CONFIRMATION
+    private void clearHistoricalLogs() {
+
+        System.out.println("\n========== CLEAR HISTORICAL LOGS ==========");
+        System.out.println(
+                "WARNING: This will permanently delete all existing audit logs."
+        );
+
+        System.out.print("Are you sure? Enter YES to confirm: ");
+        String confirmation = scanner.nextLine().trim();
+
+        if (!confirmation.equalsIgnoreCase("YES")) {
+            System.out.println("Log clearing cancelled.");
+            return;
+        }
+
+        boolean cleared = activityLogDao.clearAllLogs();
+
+        if (cleared) {
+            System.out.println("Historical audit logs cleared successfully.");
+
+            recordAdminActivity(
+                    "AUDIT_LOGS_CLEARED",
+                    "Administrator cleared historical audit logs."
+            );
+
+        } else {
+            System.out.println("Unable to clear historical audit logs.");
+        }
+    }
+
+    // DISPLAY AUDIT LOGS
+    private void displayAuditLogs(List<ActivityLog> logs) {
+
+        System.out.printf(
+                "%-5s | %-8s | %-18s | %-35s | %-20s%n",
+                "ID", "User ID", "Action Type",
+                "Description", "Timestamp"
+        );
+
+        System.out.println(
+                "-----------------------------------------------------------------------------------------------"
+        );
+
+        if (logs.isEmpty()) {
+            System.out.println("No audit logs found.");
+            return;
+        }
+
+        for (ActivityLog log : logs) {
+            System.out.printf(
+                    "%-5s | %-8s | %-18s | %-35s | %-20s%n",
+                    log.getLogId(),
+                    log.getUserId(),
+                    shorten(log.getActionType(), 18),
+                    shorten(log.getDescription(), 35),
+                    log.getTimestamp()
+            );
+        }
+
+        System.out.println("-----------------------------------------------------------------------------------------------");
+        System.out.println("Total logs: " + logs.size());
+    }
+
+    // RECORD ADMIN ACTIVITY
+    private void recordAdminActivity(
+            String actionType, String description) {
+
+        if (currentAdmin != null) {
+            activityLogDao.logAction(
+                    currentAdmin.getUserId(),
+                    actionType,
+                    description
             );
         }
     }
@@ -213,9 +367,7 @@ public class AdminMenu {
             System.out.println("3. Laboratory Assistant");
             System.out.println("0. Cancel");
 
-            int choice = readIntInput(
-                    "Choose the new role: "
-            );
+            int choice = readIntInput("Choose the new role: ");
 
             switch (choice) {
                 case 1:
@@ -227,9 +379,7 @@ public class AdminMenu {
                 case 0:
                     return null;
                 default:
-                    System.out.println(
-                            "Invalid role choice. Please try again."
-                    );
+                    System.out.println("Invalid role choice. Please try again.");
             }
         }
     }
@@ -241,9 +391,7 @@ public class AdminMenu {
             System.out.println("2. PENDING");
             System.out.println("0. Cancel");
 
-            int choice = readIntInput(
-                    "Choose the new status: "
-            );
+            int choice = readIntInput("Choose the new status: ");
 
             switch (choice) {
                 case 1:
@@ -253,9 +401,7 @@ public class AdminMenu {
                 case 0:
                     return null;
                 default:
-                    System.out.println(
-                            "Invalid status choice. Please try again."
-                    );
+                    System.out.println("Invalid status choice. Please try again.");
             }
         }
     }
